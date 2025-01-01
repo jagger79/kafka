@@ -1,0 +1,1286 @@
+openapi: 3.0.1
+info:
+  version: ${project.version}
+  title: ${project.artifactId}
+servers:
+  - url: https://localhost:12080/
+    description: Local
+  - url: https://czcid1vr.oskarmobil.cz:12080/
+    description: Devel
+  - url: https://czdxl1vr.oskarmobil.cz:12080/
+    description: Pre-prod
+tags:
+  - name: addons
+    description: Management for addons for products
+  - name: application
+    description: Application's own management
+  - name: products
+    description: Management for products containing search and aggregation capabilities
+  - name: installments
+    description: Management for installments of products
+paths:
+  /api/addons/search:
+    post:
+      tags:
+        - addons
+      summary: Search addons by filter criteria
+      operationId: searchAddons
+      requestBody:
+        description: filter
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchProductsRequest'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SearchProductsPagedResponse'
+        400:
+          description: Expected client error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+        500:
+          description: Unexpected server error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+      security:
+        - jwt: [ ]
+  /api/application/tasks/recreate:
+    post:
+      tags:
+        - application
+      summary: Recreate whole database from php product catalog
+      operationId: recreateUsingPOST
+      responses:
+        202:
+          description: Accepted
+          content: { }
+        400:
+          description: Expected client error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+        500:
+          description: Unexpected server error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+      security:
+        - basic: [ ]
+  /api/installments/search:
+    post:
+      tags:
+        - installments
+      summary: Search products by filter criteria
+      operationId: searchInstallments
+      requestBody:
+        description: filter
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstallmentsSearchRequest'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublishedInstallments'
+        400:
+          description: Expected client error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+        500:
+          description: Unexpected server error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+      security:
+        - jwt: [ ]
+  /api/products/search:
+    post:
+      tags:
+        - products
+      summary: Search products by filter criteria
+      operationId: searchProducts
+      requestBody:
+        description: filter
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchProductsRequest'
+        required: false
+      responses:
+        200:
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SearchProductsPagedResponse'
+        400:
+          description: Expected client error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+        500:
+          description: Unexpected server error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+      security:
+        - jwt: [ ]
+  /api/products/search-filters:
+    post:
+      tags:
+        - products
+      summary: Get filters for products searching within specified criteria
+      operationId: searchProductsFilters
+      requestBody:
+        description: filter
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchProductsFilterCriteriaRequest'
+        required: false
+      responses:
+        200:
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SearchProductsFilterCriteriaResponse'
+        400:
+          description: Expected client error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+        500:
+          description: Unexpected server error.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MvcExceptionResponse'
+      security:
+        - jwt: [ ]
+
+####################################################################################
+####################################################################################
+####################################################################################
+####################################################################################
+components:
+  schemas:
+    ####################################################################################
+    # Searching structures
+    ####################################################################################
+    SearchProductsRequest:
+      title: SearchProductsRequest
+      type: object
+      properties:
+        salesChannelCode:
+          $ref: '#/components/schemas/SalesChannelCode'
+        productIds:
+          type: array
+          description: "Ids of products"
+          items:
+            type: string
+        productTypes:
+          type: array
+          description: "Type of products [TARIFF,HANDSET,ACCESSORY,ADDON,COMPONENT,EUCODEX,EUCODEX_BUNDLE]"
+          items:
+            $ref: '#/components/schemas/ProductTypeStr'
+        productCategories:
+          type: array
+          description: "Categories of products [VODAFONE_TV,POSTPAID,FIXED_BROADBAND,TARIFF]"
+          items:
+            type: string
+        partNumbers:
+          type: array
+          description: "Part numbers to be filtered"
+          items:
+            type: string
+        storeAvailability:
+          type: array
+          description: "Filter for availability"
+          items:
+            $ref: '#/components/schemas/StoreAvailability'
+        language:
+          $ref: '#/components/schemas/Language'
+        slugsIn:
+          type: array
+          description: Filter for products having all product slugs
+          items:
+            type: string
+        tags:
+          type: array
+          description: Filter with logical disjunction of product tags, product is included
+          items:
+            type: string
+        tagsNotIn:
+          type: array
+          description: list of tags, where the searched product must not contain any of the listed
+          items:
+            type: string
+        inStock:
+          description: filter only products which are in stock
+          type: boolean
+        price:
+          $ref: '#/components/schemas/PriceFilterRequest'
+        attributes:
+          type: array
+          description: Filter for products having all required product attributes
+          items:
+            $ref: '#/components/schemas/AttributeFilterRequest'
+        page:
+          $ref: '#/components/schemas/PageRequest'
+
+    PriceFilterRequest:
+      title: PriceFilterRequest
+      type: object
+      description: Filter with required price range
+      properties:
+        min:
+          type: integer
+          description: minimal available price
+        max:
+          type: integer
+          description: maximal available price
+
+    AttributeFilterRequest:
+      title: AttributeFilterRequest
+      type: object
+      required:
+        - slug
+        - optionsIn
+      properties:
+        slug:
+          type: string
+        optionsIn:
+          type: array
+          minItems: 1
+          items:
+            type: string
+
+    SearchProductsPagedResponse:
+      title: SearchProductPagedResponse
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchProductResource'
+        page:
+          $ref: '#/components/schemas/Page'
+
+    SearchProductResource:
+      title: SearchProductResource
+      type: object
+      properties:
+        productType:
+          $ref: '#/components/schemas/ProductTypeStr'
+        productInfo:
+          type: object
+          description: "Detail of product depending on type: one of [PublishedAccessory,PublishedHandset,PublishedTariff]"
+        stockInfo:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchProductStockInfo'
+        alwaysInStock:
+          type: boolean
+          description: If true this product is always assumes in stock no matter of quantity
+        storeAvailability:
+          $ref: '#/components/schemas/StoreAvailability'
+
+    InstallmentsSearchRequest:
+      title: InstallmensSearchRequest
+      type: object
+      required:
+        - tariffPartNumber
+        - handsetPartNumber
+      properties:
+        tariffPartNumber:
+          type: string
+        handsetPartNumber:
+          type: string
+
+    ProductTypeStr:
+      type: string
+      description: Type of the product
+      example:
+        - TARIFF
+        - HANDSET
+        - ACCESSORY
+        - PREPAID
+        - ADDON
+
+    SearchProductStockInfo:
+      title: SearchProductStockInfo
+      type: object
+      properties:
+        gxCode:
+          type: string
+          description: Identification code of the store (WHS for central warehouse)
+        onHandQuantity:
+          type: integer
+          description: Quantity of product on store
+
+    SalesChannelCode:
+      type: string
+      description: Sales channel specifies who requests products
+      example: "[RETAIL,ESHOP,INTERNAL,HOUSEHOLD,CARE,TELESALES]"
+
+    Language:
+      type: string
+      description: Language used for filter purposes, mainly used in slugs / tags
+      example: "[cs,en]"
+
+    ########################################
+    # enumerations defintions
+    ########################################
+    StoreAvailability:
+      type: string
+      description: "Defines availability for item in stock/warehouse"
+      enum:
+        - IN_STOCK
+        - NOT_IN_STOCK
+        - WAREHOUSE
+        - SHOP
+
+    ProductType:
+      type: string
+      description: Type of the product
+      enum:
+        - TARIFF
+        - HANDSET
+        - ACCESSORY
+        - PREPAID
+        - ADDON
+
+    SalesChannelType:
+      type: string
+      description: Sales channel specifies who requests products
+      enum:
+        - RETAIL
+        - ESHOP
+        - INTERNAL
+        - HOUSEHOLD
+        - CARE
+        - TELESALES
+
+    LanguageType:
+      type: string
+      description: Language used for filter purposes, mainly used in slugs / tags
+      enum:
+        - cs
+        - en
+
+    ######################################################
+    # PRODUCT resources
+    ######################################################
+
+    ######################################################
+    # Common resources
+    ######################################################
+    PublishedProduct:
+      title: PublishedProduct
+      type: object
+      properties:
+        partNumber:
+          type: string
+        category:
+          type: string
+          description: "Represents category of product providing information what this really is"
+          enum:
+            - PHONE
+            - TABLET
+            - PORTABLE_MODEM
+            - SMART_DEVICE
+            - SET_TOP_BOX
+            - MODEM
+            - STARTER_KIT
+            - HANDSET
+            - ACCESSORY
+            - HARDWARE
+            - FIXED_BROADBAND
+            - VODAFONE_TV
+            - POSTPAID
+            - TARIFF
+            - ADDON
+        hasComponents:
+          type: boolean
+        eligibleAddons:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        orderBackOffice:
+          type: integer
+          minimum: 0
+        orderEshop:
+          type: integer
+          minimum: 0
+        orderRetail:
+          type: integer
+          minimum: 0
+        orderHouseHold:
+          type: integer
+          minimum: 0
+        orderTeleSales:
+          type: integer
+          minimum: 0
+        orderCare:
+          type: integer
+          minimum: 0
+        orderZame:
+          type: integer
+          minimum: 0
+    PublishedPrice:
+      title: PublishedPrice
+      type: object
+      properties:
+        standardPrice:
+          type: number
+          format: float
+        standardPromoPrice:
+          type: number
+          format: float
+        standardPromoPriceValidity:
+          type: string
+          example: null
+        contractPrice:
+          type: number
+          format: float
+        contractPromoPrice:
+          type: number
+          format: float
+        contractPromoPriceValidity:
+          type: string
+          example: null
+        depositPrice:
+          type: number
+          format: float
+    LocalizedSlug:
+      title: LocalizedSlug
+      type: object
+      additionalProperties:
+        type: string
+      description: associative array of slugs, where the key is a country code (string, 2 characters)
+      example:
+        cs: huawei-y6p-huey6p
+        en: huawei-y6p-huey6p
+    LocalizedText:
+      title: LocalizedText
+      type: object
+      additionalProperties:
+        type: string
+      description: associative array of texts, where the key is a country code (string, 2 characters)
+      example:
+        cs: <p>Český text <strong>tučně</strong> text</p>
+        en: <p>Some example possibly <strong>rich</strong> text</p>
+    PublishedAttributes:
+      title: PublishedAttributes
+      type: object
+      properties:
+        categoryName:
+          $ref: '#/components/schemas/LocalizedText'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductAttribute'
+    ProductAttribute:
+      title: ProductAttribute
+      type: object
+      properties:
+        slug:
+          type: string
+        option:
+          type: string
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        description:
+          $ref: '#/components/schemas/LocalizedText'
+      example:
+        slug:
+          display-size
+        option:
+          2,0" (5,1 cm)
+        name:
+          cs: Velikost displeje
+          en: Display size
+        description:
+          cs: Velikost displeje
+          en: Display size
+    PublishedTag:
+      type: object
+      properties:
+        filter:
+          type: boolean
+        sticker:
+          type: boolean
+        color:
+          type: string
+        slug:
+          $ref: '#/components/schemas/LocalizedText'
+        label:
+          $ref: '#/components/schemas/LocalizedText'
+      example:
+        filter: false
+        sticker: false
+        color: '0f4cff'
+        slug:
+          cs: pro-studenty
+          en: for-students
+        label:
+          cs: Pro studenty
+          en: For students
+    Discount:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: number
+          format: float
+        partNumber:
+          type: string
+        type:
+          type: string
+          enum:
+            - DISCOUNT_AMOUNT
+            - DISCOUNT_PERCENTAGE
+            - REPRICE
+    SaleChannels:
+      type: object
+      properties:
+        saleChannelRetail:
+          type: boolean
+        saleChannelEShop:
+          type: boolean
+        saleChannelBackOffice:
+          type: boolean
+        saleChannelHouseHold:
+          type: boolean
+        saleChannelTeleSales:
+          type: boolean
+        saleChannelCare:
+          type: boolean
+        saleChannelZame:
+          type: boolean
+
+    ######################################################
+    # TARIFF resource
+    ######################################################
+    PublishedTariff:
+      title: PublishedTariff
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        product:
+          $ref: '#/components/schemas/PublishedProduct'
+        price:
+          $ref: '#/components/schemas/PublishedPrice'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishedTag'
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishedAttributes'
+        attributeItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductAttribute'
+        slug:
+          $ref: '#/components/schemas/LocalizedSlug'
+        shortDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        longDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        imageUrl:
+          type: string
+          example: https://vodafone.cz/images/tariff.jpg
+        saleChannels:
+          $ref: '#/components/schemas/SaleChannels'
+        ################## Tariff's special attributes
+        msl:
+          type: object
+          properties:
+            id:
+              type: string
+            partNumber:
+              type: string
+            limit:
+              type: number
+              format: float
+        text:
+          $ref: '#/components/schemas/LocalizedText'
+        annotation:
+          $ref: '#/components/schemas/LocalizedText'
+        shortProgramList:
+          $ref: '#/components/schemas/LocalizedText'
+        longProgramList:
+          $ref: '#/components/schemas/LocalizedText'
+        productBox:
+          $ref: '#/components/schemas/LocalizedText'
+        productHighlights:
+          $ref: '#/components/schemas/LocalizedText'
+        productBenefits:
+          $ref: '#/components/schemas/LocalizedText'
+        isicRequired:
+          type: boolean
+        modems:
+          type: array
+          items:
+            type: object
+            description: Handset/modem product and its prices in bundle with tariff
+            properties:
+              id:
+                type: string
+              name:
+                $ref: '#/components/schemas/LocalizedText'
+              provider:
+                type: string
+                maxLength: 32
+              technology:
+                type: string
+                maxLength: 32
+              bundlePrice:
+                type: number
+                format: float
+              depositPrice:
+                type: number
+                format: float
+              discount:
+                $ref: '#/components/schemas/Discount'
+              rentalPrice:
+                type: number
+                format: float
+              installmentAmount:
+                type: number
+                format: float
+              installmentDuration:
+                type: integer
+              installmentUpfront:
+                type: number
+                format: float
+              modemMandatory:
+                type: boolean
+                description: True, if modem purchase is mandatory
+              paymentMethods:
+                type: array
+                uniqueItems: true
+                items:
+                  type: string
+                  enum:
+                    - UPFRONT
+                    - INSTALLMENT
+                    - RENTAL
+              partNumber:
+                type: string
+              slug:
+                $ref: '#/components/schemas/LocalizedSlug'
+
+    ######################################################
+    # PREPAID resource
+    ######################################################
+    PublishedPrepaid:
+      title: PublishedPrepaid
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        product:
+          $ref: '#/components/schemas/PublishedProduct'
+        price:
+          $ref: '#/components/schemas/PublishedPrice'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishedTag'
+        slug:
+          $ref: '#/components/schemas/LocalizedSlug'
+        shortDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        longDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        saleChannels:
+          $ref: '#/components/schemas/SaleChannels'
+        ################## Tariff's special attributes
+        annotation:
+          $ref: '#/components/schemas/LocalizedText'
+
+    ######################################################
+    # ACCESSORY resource
+    ######################################################
+    PublishedAccessory:
+      title: PublishedAccessory
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        product:
+          $ref: '#/components/schemas/PublishedProduct'
+        price:
+          $ref: '#/components/schemas/PublishedPrice'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishedTag'
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishedAttributes'
+        attributeItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductAttribute'
+        slug:
+          $ref: '#/components/schemas/LocalizedSlug'
+        shortDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        longDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        imageUrl:
+          type: string
+          example: https://vodafone.cz/images/accessory.jpg
+        saleChannels:
+          $ref: '#/components/schemas/SaleChannels'
+        ################## Accessory's special attributes
+        thumbnailUrl:
+          type: string
+          example: https://vodafone.cz/images/50X50__accessory.jpg
+        ean:
+          type: string
+          example: 01234567891234
+
+    ######################################################
+    # HANDSET resource
+    ######################################################
+    PublishedHandset:
+      title: PublishedHandset
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        product:
+          $ref: '#/components/schemas/PublishedProduct'
+        price:
+          $ref: '#/components/schemas/PublishedPrice'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishedTag'
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishedAttributes'
+        attributeItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductAttribute'
+        slug:
+          $ref: '#/components/schemas/LocalizedSlug'
+        shortDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        longDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        imageUrl:
+          type: string
+          example: https://vodafone.cz/images/accessory.jpg
+        saleChannels:
+          $ref: '#/components/schemas/SaleChannels'
+        ################## Handset's special attributes
+        ean:
+          type: string
+          example: 01234567891234
+        thumbnailUrl:
+          type: string
+          example: https://vodafone.cz/images/50X50__accessory.jpg
+        accessories:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            example: "NS568ABH28"
+            description: "PartNumber of Accessory"
+        tariffs:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                $ref: '#/components/schemas/LocalizedText'
+              partNumber:
+                type: string
+                example: IPHONE11PRO512MG
+              slug:
+                $ref: '#/components/schemas/LocalizedText'
+              handset:
+                type: object
+                properties:
+                  bundlePrice:
+                    type: number
+                    format: float
+                  depositPrice:
+                    type: number
+                    format: float
+                  discount:
+                    $ref: '#/components/schemas/Discount'
+
+    ######################################################
+    # ADDON resource
+    ######################################################
+    PublishedAddon:
+      title: PublishedAddon
+      type: object
+      properties:
+        id:
+          type: string
+        product:
+          $ref: '#/components/schemas/PublishedProduct'
+        price:
+          type: object
+          properties:
+            oneTimePrice:
+              type: number
+              format: float
+            recurringPrice:
+              type: number
+              format: float
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishedTag'
+        eligibleAddons:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        annotation:
+          $ref: '#/components/schemas/LocalizedText'
+        shortDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        longDescription:
+          $ref: '#/components/schemas/LocalizedText'
+        slug:
+          $ref: '#/components/schemas/LocalizedSlug'
+        saleChannels:
+          $ref: '#/components/schemas/SaleChannels'
+        provider:
+          type: string
+        technology:
+          type: string
+        mandatoryType:
+          type: string
+          enum:
+            - EXACT
+            - ONE_OF
+
+    ######################################################
+    # COMPONENTS objects
+    ######################################################
+    PublishedProductComponent:
+      title: PublishedProductComponent
+      type: object
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        standardSubscribers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductComponentSubscriber'
+        contractSubscribers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductComponentSubscriber'
+        validFrom:
+          type: string
+          example: '2018-07-12T07:12:28+00:00'
+          format: date-time
+    ProductComponentSubscriber:
+      title: ProductComponentSubscriber
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - GsmSubscription
+            - FmsSubscription
+            - SohoSubscription
+            - MosSubscription
+            - SasSubscription
+            - CashRegisterSubscription
+            - FemtoSubscription
+            - FakeSimSubscription
+            - FixSubscription
+            - FbbSubscription
+            - SecSubscription
+            - VtvSubscription
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductComponent'
+    ProductComponent:
+      title: ProductComponent
+      type: object
+      properties:
+        id:
+          type: string
+        partNumber:
+          type: string
+        type:
+          type: string
+          enum:
+            - FlexiBundleProduct
+            - DataProduct
+            - ServiceProduct
+            - FlexiBundleMemberProduct
+            - DataMasterProduct
+            - DataMemberProduct
+        discount:
+          $ref: '#/components/schemas/Discount'
+
+    ######################################################
+    # EU_CODEX objects
+    ######################################################
+    PublishedCodex:
+      title: PublishedCodex
+      type: object
+      properties:
+        id:
+          type: string
+        partNumber:
+          type: string
+        section:
+          type: string
+        productName:
+          type: string
+        label1:
+          type: string
+        label2:
+          type: string
+        formalPrice:
+          type: number
+    PublishedCodexBundle:
+      title: PublishedCodexBundle
+      type: object
+      properties:
+        id:
+          type: string
+        sourcePartNumber:
+          type: string
+        targetPartNumbers:
+          type: array
+          items:
+            type: string
+
+    ######################################################
+    # INSTALLMENTS resource
+    ######################################################
+    PublishedInstallments:
+      title: PublishedInstallments
+      type: object
+      properties:
+        payrolls:
+          type: array
+          items:
+            type: object
+            properties:
+              upfront:
+                type: number
+              installment:
+                type: number
+              charge:
+                type: number
+              forLoyalOnly:
+                type: boolean
+        installments:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: number
+                example:
+                  40
+              product:
+                $ref: '#/components/schemas/PublishedProduct'
+
+    ####################################################################################
+    # Aggregation structures
+    ####################################################################################
+    SearchProductsFilterCriteriaRequest:
+      title: SearchProductsFilterCriteriaRequest
+      type: object
+      properties:
+        salesChannelCode:
+          $ref: '#/components/schemas/SalesChannelCode'
+        fixedFilters:
+          $ref: '#/components/schemas/SearchProductsRequest'
+        customFilters:
+          $ref: '#/components/schemas/SearchProductsRequest'
+    SearchProductsFilterCriteriaResponse:
+      title: SearchProductsFilterCriteriaResponse
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterCriteriaTagResource'
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterCriteriaAttributeResource'
+        price:
+          $ref: '#/components/schemas/FilterCriteriaPriceResource'
+    FilterCriteriaTagResource:
+      title: FilterCriteriaTagResource
+      type: object
+      properties:
+        slug:
+          type: string
+          description: slug of attribute
+        name:
+          type: string
+          description: Localized name of attribute
+        count:
+          type: integer
+    FilterCriteriaAttributeResource:
+      title: FilterCriteriaAttributeResource
+      type: object
+      required:
+        - slug
+        - name
+        - optionsIn
+      properties:
+        slug:
+          type: string
+          description: slug of attribute
+        name:
+          type: string
+          description: Localized name of attribute
+        description:
+          type: string
+          description: Localized description of attribute
+        optionsIn:
+          type: array
+          description: available values of attribute
+          items:
+            $ref: '#/components/schemas/FilterCriteriaAttributeOptionResource'
+    FilterCriteriaAttributeOptionResource:
+      title: FilterCriteriaAttributeOptionResource
+      type: object
+      required:
+        - slug
+        - name
+      properties:
+        option:
+          type: string
+          description: slug of attribute
+        count:
+          type: integer
+    FilterCriteriaPriceResource:
+      title: FilterCriteriaPriceResource
+      type: object
+      properties:
+        min:
+          type: number
+          description: minimal available price
+        max:
+          type: number
+          description: minimal available price
+        step:
+          type: integer
+          description: step for UI select
+        currency:
+          type: string
+          description: Localized currency
+
+    #####################
+    # Common objects
+    #####################
+    MvcExceptionResponse:
+      title: MvcExceptionResponse
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        parameters:
+          type: object
+          additionalProperties:
+            type: string
+        path:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACCEPTED
+            - ALREADY_REPORTED
+            - BAD_GATEWAY
+            - BAD_REQUEST
+            - BANDWIDTH_LIMIT_EXCEEDED
+            - CHECKPOINT
+            - CONFLICT
+            - CONTINUE
+            - CREATED
+            - DESTINATION_LOCKED
+            - EXPECTATION_FAILED
+            - FAILED_DEPENDENCY
+            - FORBIDDEN
+            - FOUND
+            - GATEWAY_TIMEOUT
+            - GONE
+            - HTTP_VERSION_NOT_SUPPORTED
+            - IM_USED
+            - INSUFFICIENT_SPACE_ON_RESOURCE
+            - INSUFFICIENT_STORAGE
+            - INTERNAL_SERVER_ERROR
+            - I_AM_A_TEAPOT
+            - LENGTH_REQUIRED
+            - LOCKED
+            - LOOP_DETECTED
+            - METHOD_FAILURE
+            - METHOD_NOT_ALLOWED
+            - MOVED_PERMANENTLY
+            - MOVED_TEMPORARILY
+            - MULTIPLE_CHOICES
+            - MULTI_STATUS
+            - NETWORK_AUTHENTICATION_REQUIRED
+            - NON_AUTHORITATIVE_INFORMATION
+            - NOT_ACCEPTABLE
+            - NOT_EXTENDED
+            - NOT_FOUND
+            - NOT_IMPLEMENTED
+            - NOT_MODIFIED
+            - NO_CONTENT
+            - OK
+            - PARTIAL_CONTENT
+            - PAYLOAD_TOO_LARGE
+            - PAYMENT_REQUIRED
+            - PERMANENT_REDIRECT
+            - PRECONDITION_FAILED
+            - PRECONDITION_REQUIRED
+            - PROCESSING
+            - PROXY_AUTHENTICATION_REQUIRED
+            - REQUESTED_RANGE_NOT_SATISFIABLE
+            - REQUEST_ENTITY_TOO_LARGE
+            - REQUEST_HEADER_FIELDS_TOO_LARGE
+            - REQUEST_TIMEOUT
+            - REQUEST_URI_TOO_LONG
+            - RESET_CONTENT
+            - SEE_OTHER
+            - SERVICE_UNAVAILABLE
+            - SWITCHING_PROTOCOLS
+            - TEMPORARY_REDIRECT
+            - TOO_EARLY
+            - TOO_MANY_REQUESTS
+            - UNAUTHORIZED
+            - UNAVAILABLE_FOR_LEGAL_REASONS
+            - UNPROCESSABLE_ENTITY
+            - UNSUPPORTED_MEDIA_TYPE
+            - UPGRADE_REQUIRED
+            - URI_TOO_LONG
+            - USE_PROXY
+            - VARIANT_ALSO_NEGOTIATES
+        timestamp:
+          type: string
+          format: date-time
+    Page:
+      title: Page
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page beginning from 1
+          format: int32
+        size:
+          type: integer
+          description: Count of the elements for current page
+          format: int32
+        totalElements:
+          type: integer
+          description: Complete total count of all elements
+          format: int64
+        totalPages:
+          type: integer
+          description: Total pages for whole bunch of data
+          format: int32
+    PageRequest:
+      title: PageRequest
+      type: object
+      properties:
+        page:
+          type: integer
+          description: which page should be returned
+          format: int32
+        size:
+          type: integer
+          description: size of page, number of elements what should be returned on
+            one page
+          format: int32
+        sort:
+          type: array
+          description: sorting definitions
+          items:
+            $ref: '#/components/schemas/Sort'
+      description: for paging purposes
+    Sort:
+      title: Sort
+      required:
+        - direction
+      type: object
+      properties:
+        direction:
+          type: string
+          enum:
+            - ASC
+            - DESC
+        property:
+          pattern: '[a-zA-Z]+(\.[a-zA-Z]+)*'
+          type: string
+          description: define by which property should be sorted
+          example: '''resource.created'' means that should be sorted by created date
+            inside property resource'
+      description: specify sorting criteria
+  securitySchemes:
+    basic:
+      type: http
+      scheme: basic
+    jwt:
+      type: apiKey
+      name: Authorization
+      in: header

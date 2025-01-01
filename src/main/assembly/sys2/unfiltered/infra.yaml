@@ -1,0 +1,55 @@
+# HTTP Server Settings
+server.ssl:
+  enabled: true
+  client-auth: want
+  # Server Certificate
+  key-store: file:${PATH_ABS_MSA_HOME}/security/${HOSTNAME}.oskarmobil.cz.p12
+  # Includes Trusted Client Certificates
+  trust-store: file:${PATH_ABS_MSA_HOME}/security/truststore.p12
+
+# HTTP Client Settings
+http.client.ssl:
+  # Application (Microservice Family) Client Certificate
+  key-store: file:${PATH_ABS_MSA_HOME}/${SERVICE_NAME}/security/clientmservocp-sys2.oskarmobil.cz.p12
+  # Includes VFCZ Root CA, VFCZ AO SubCA, May Include ldaps.oskarmobil.cz Certificate
+  trust-store: file:${PATH_ABS_MSA_HOME}/security/truststore.p12
+
+# Permit msa-gateway, ocp Clients
+vodafone.security.x509.permitted-certificates: clientmservmsagw-sys2.oskarmobil.cz,clientmservocp-sys2.oskarmobil.cz
+
+# APPLICATION specific settings
+kafka:
+  # Admin client to be used for super-user operations - ACL
+  client:
+    "[bootstrap.servers]": czcid2vr.oskarmobil.cz:${kafka.server-mandatory.client-broker-port}
+    "[ssl.keystore.location]": ${http.client.ssl.key-store}
+    "[ssl.keystore.password]": ${http.client.ssl.key-store-password}
+    "[ssl.keystore.type]": PKCS12
+    "[ssl.truststore.location]": ${server.ssl.trust-store}
+    "[ssl.truststore.password]": ${server.ssl.trust-store-password}
+    "[ssl.truststore.type]": PKCS12
+    "[security.protocol]": SASL_SSL
+    "[sasl.mechanism]": SCRAM-SHA-512
+    "[sasl.jaas.config]": "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"${kafka.super-user.name}\" password=\"${kafka.super-user.password}\";"
+
+  server-mandatory:
+    # mapping for broker's ID dependant on server-node
+    node-id-mapping:
+      czcid2vr: 0
+    controller-port: 12204
+    client-broker-port: 12202
+    inter-broker:
+      port: 12203
+
+  # https://kafka.apache.org/documentation/
+  server:
+    "[num.partitions]": 1
+    "[offsets.topic.replication.factor]": 1
+    "[log.dirs]": ${PATH_ABS_MSA_HOME}/${SERVICE_NAME}/data
+    "[metadata.log.dir]": ${PATH_ABS_MSA_HOME}/${SERVICE_NAME}/metadata
+    "[controller.quorum.voters]": 0@czcid2vr.oskarmobil.cz:${kafka.server-mandatory.controller-port}
+    #"[advertised.listeners]": BROKER://czcid1vr.oskarmobil.cz:12201
+    # The number of threads that the server uses for processing requests, which may include disk I/O
+    "[num.io.threads]": 8
+    # The number of threads that the server uses for receiving requests from the network and sending responses to the network
+    "[num.network.threads]": 3

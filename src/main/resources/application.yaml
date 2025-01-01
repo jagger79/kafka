@@ -1,0 +1,122 @@
+#server:
+#  shutdown: graceful
+server.tomcat:
+  max-http-form-post-size: 50MB
+  max-swallow-size: 50MB
+
+api:
+  base-path: /api
+
+spring:
+  #lifecycle:
+  #  timeout-per-shutdown-phase: ${vodafone.graceful-shutdown.timeout-seconds}
+  application.name: @project.artifactId@
+  servlet.multipart:
+    max-request-size: 50MB
+    max-file-size: 50MB
+    file-size-threshold: 1MB
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      indent-output: off
+      fail-on-empty-beans: off
+    parser:
+      allow-comments: on
+      allow-yaml-comments: on
+
+logging.level:
+  ROOT: info
+
+service:
+  error-mapping:
+    ResourceNotFoundException: BAD_REQUEST
+    InvalidRequestException: BAD_REQUEST
+
+# APPLICATION specific settings
+kafka:
+  description: "@project.description@"
+
+  server-mandatory:
+    cluster-id: "main-cluster"
+
+  # DOC: org.apache.kafka.common.config.internals.BrokerSecurityConfigs
+  # DOC: org.apache.kafka.common.config.SslConfigs
+  server:
+    "[broker.rack]": ${HOSTNAME}
+    "[process.roles]": broker,controller
+    "[inter.broker.listener.name]": INTER_BROKER
+    "[controller.listener.names]": CONTROLLER
+    "[listener.security.protocol.map]": CONTROLLER:SSL,INTER_BROKER:SSL,CLIENT_BROKER:SASL_SSL
+    "[node.id]": ${kafka.server-mandatory.node-id-mapping[${HOSTNAME}]}
+    "[listeners]": INTER_BROKER://:${kafka.server-mandatory.inter-broker.port},CONTROLLER://:${kafka.server-mandatory.controller-port},CLIENT_BROKER://:${kafka.server-mandatory.client-broker-port}
+
+    ##########################################################
+    # common server configuration
+    ##########################################################
+    "[initial.broker.registration.timeout.ms]": 3600000
+
+    ##########################################################
+    # inter-broker communication security/certificates
+    ##########################################################
+    "[ssl.client.auth]": none
+
+    "[listener.name.inter_broker.ssl.keystore.location]": ${kafka.server-mandatory.inter-broker.certificate.key-store}
+    "[listener.name.inter_broker.ssl.keystore.password]": ${kafka.server-mandatory.inter-broker.certificate.key-store-password}
+    "[listener.name.inter_broker.ssl.keystore.type]": PKCS12
+    "[listener.name.inter_broker.ssl.truststore.location]": ${kafka.server-mandatory.inter-broker.certificate.key-store}
+    "[listener.name.inter_broker.ssl.truststore.password]": ${kafka.server-mandatory.inter-broker.certificate.key-store-password}
+    "[listener.name.inter_broker.ssl.truststore.type]": PKCS12
+    "[listener.name.inter_broker.ssl.client.auth]": required
+
+    "[listener.name.controller.ssl.keystore.location]": ${kafka.server-mandatory.inter-broker.certificate.key-store}
+    "[listener.name.controller.ssl.keystore.password]": ${kafka.server-mandatory.inter-broker.certificate.key-store-password}
+    "[listener.name.controller.ssl.keystore.type]": PKCS12
+    "[listener.name.controller.ssl.truststore.location]": ${kafka.server-mandatory.inter-broker.certificate.key-store}
+    "[listener.name.controller.ssl.truststore.password]": ${kafka.server-mandatory.inter-broker.certificate.key-store-password}
+    "[listener.name.controller.ssl.truststore.type]": PKCS12
+    "[listener.name.controller.ssl.client.auth]": required
+
+    "[ssl.keystore.location]": ${kafka.server-mandatory.inter-broker.certificate.key-store}
+    "[ssl.keystore.password]": ${kafka.server-mandatory.inter-broker.certificate.key-store-password}
+    "[ssl.keystore.type]": PKCS12
+    "[ssl.truststore.location]": ${kafka.server-mandatory.inter-broker.certificate.key-store}
+    "[ssl.truststore.password]": ${kafka.server-mandatory.inter-broker.certificate.key-store-password}
+    "[ssl.truststore.type]": PKCS12
+
+    ##########################################################
+    # SSL configuration with client certificate authorization
+    # client connection configuration: client <=> broker
+    ##########################################################
+    "[listener.name.client_broker.ssl.keystore.location]": ${server.ssl.key-store}
+    "[listener.name.client_broker.ssl.keystore.password]": ${server.ssl.key-store-password}
+    "[listener.name.client_broker.ssl.keystore.type]": PKCS12
+    "[listener.name.client_broker.ssl.truststore.location]": ${server.ssl.trust-store}
+    "[listener.name.client_broker.ssl.truststore.password]": ${server.ssl.trust-store-password}
+    "[listener.name.client_broker.ssl.truststore.type]": PKCS12
+    "[listener.name.client_broker.sasl.enabled.mechanisms]": SCRAM-SHA-512
+    "[listener.name.client_broker.scram-sha-512.sasl.jaas.config]": "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"${kafka.super-user.name}\" password=\"${kafka.super-user.password}\";"
+    "[listener.name.client_broker.ssl.client.auth]": none
+
+    ##########################################################
+    # ACL configuration
+    ##########################################################
+    "[authorizer.class.name]": org.apache.kafka.metadata.authorizer.StandardAuthorizer
+    "[allow.everyone.if.no.acl.found]": false
+    # format: <principal type=User|Group|Role>:<username|DN|*>
+    "[super.users]": User:${kafka.server-mandatory.inter-broker.dn};User:${kafka.super-user.name}
+
+    ##########################################################
+    # Topic configuration
+    ##########################################################
+    # Enable auto creation of topic on the server
+    "[auto.create.topics.enable]": false
+    # Enables delete topic. Delete topic through the admin tool will have no effect if this config is turned off
+    "[delete.topic.enable]": true
+    # The number of hours to keep a log file before deleting it (in hours), tertiary to log.retention.ms property
+    "[log.retention.hours]": 168
+    # The maximum time before a new log segment is rolled out (in hours), secondary to log.roll.ms property
+    "[log.roll.hours]": 168
+    # The number of milliseconds to keep a metadata log file or snapshot before deleting it
+    "[metadata.max.retention.ms]": 604800000
+    # The largest record batch size allowed by Kafka (after compression if compression is enabled).
+    "[message.max.bytes]": 1048588
