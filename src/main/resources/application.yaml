@@ -10,6 +10,8 @@ api:
 spring:
   #lifecycle:
   #  timeout-per-shutdown-phase: ${vodafone.graceful-shutdown.timeout-seconds}
+  main:
+    banner-mode: off
   application.name: @project.artifactId@
   servlet.multipart:
     max-request-size: 50MB
