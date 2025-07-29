@@ -11,10 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DescribeMetadataQuorumResult;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
-import org.apache.kafka.common.security.scram.ScramCredential;
-import org.apache.kafka.common.security.scram.internals.ScramCredentialUtils;
+import org.apache.kafka.clients.admin.ScramMechanism;
 import org.apache.kafka.common.security.scram.internals.ScramFormatter;
-import org.apache.kafka.common.security.scram.internals.ScramMechanism;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -54,9 +52,10 @@ public class KafkaBeansService {
         server = serverFactory.getObject();
         config = configFactory.getObject();
 
-        updateSuperUserCredsDirect(broker,
+        // Setting up the super-users to no need to be in kafka db
+        broker.credentialProvider().updateCredential(ScramMechanism.SCRAM_SHA_512,
                 props.getSuperUser().getName(),
-                props.getSuperUser().getPassword());
+                formatter.generateCredential(props.getSuperUser().getPassword(), 4096));
 
         Properties props = new Properties();
         props.putAll(this.props.getClient());
@@ -69,20 +68,6 @@ public class KafkaBeansService {
             destroy();
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Setting up the super-users to no need to be in kafka db
-     */
-    private void updateSuperUserCredsDirect(BrokerServer broker,
-                                            String name,
-                                            String pass) {
-        ScramCredential creds = formatter.generateCredential(pass, 4096);
-        String credsString = ScramCredentialUtils.credentialToString(creds);
-        Properties credsProps = new Properties();
-        credsProps.put(ScramMechanism.SCRAM_SHA_512.mechanismName(), credsString);
-
-        broker.credentialProvider().updateCredentials(name, credsProps);
     }
 
     @PreDestroy
