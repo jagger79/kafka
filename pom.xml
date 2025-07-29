@@ -34,55 +34,45 @@
             </resource>
         </resources>
 
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <configuration>
-                        <arguments>
-                            <argument>--spring.config.name=application,infra,passwords,security</argument>
-                        </arguments>
-                    </configuration>
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>build-info</goal>
-                                <goal>repackage</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>io.github.git-commit-id</groupId>
-                    <artifactId>git-commit-id-maven-plugin</artifactId>
-                    <version>9.0.2</version>
-                    <configuration>
-                        <failOnNoGitDirectory>false</failOnNoGitDirectory>
-                        <verbose>false</verbose>
-                        <offline>true</offline>
-                    </configuration>
-                    <executions>
-                        <execution>
-                            <phase>initialize</phase>
-                            <goals>
-                                <goal>revision</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-
         <plugins>
-            <plugin>
-                <groupId>io.github.git-commit-id</groupId>
-                <artifactId>git-commit-id-maven-plugin</artifactId>
-            </plugin>
+            <!-- spring-boot-maven-plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <arguments>
+                        <argument>--spring.config.name=application,infra,passwords,security</argument>
+                    </arguments>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build-info</goal>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
+            <!-- git-commit-id-maven-plugin -->
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>9.0.2</version>
+                <configuration>
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                    <verbose>false</verbose>
+                    <offline>true</offline>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- maven-compiler-plugin -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
@@ -113,6 +103,7 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+            <!-- maven-assembly-plugin -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
